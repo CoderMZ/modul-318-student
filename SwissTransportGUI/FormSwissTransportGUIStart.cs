@@ -7,34 +7,71 @@ namespace SwissTransportGUI
 {
     public partial class FormSwissTransportGUIStart : Form
     {
+        bool prevention = false;
+        string tempstringsave = string.Empty;
         Transport SwissTransp = new Transport();
+
         public FormSwissTransportGUIStart()
         {
             InitializeComponent();
+            pnldepartpanel.Visible = false;
+        }
+        private void preventdropdown(object sender, EventArgs e)
+        {
+            prevention = true;
+        }
+        //hier dasselbe wie unten
+        private void cbotextchanged(object sender, EventArgs e)
+        {
+            string sendername = ((ComboBox)sender).Name;
+            if (sendername == "cbodepart")
+            {
+                timerde.Enabled = false;
+                timerde.Enabled = true;
+            }
+            else if(sendername == "cboarrival")
+            {
+                timerar.Enabled = false;
+                timerar.Enabled = true;
+            }
         }
 
-        private void cbodepart_TextChanged(object sender, EventArgs e)
+        //am ende zu einer Methode fügen und variable erstellen damit kein duplicate code vorhanden ist.
+        private void autofillcbo(object sender, EventArgs e)
         {
-            //add a timer which resets upon calling this class,
-            //if this timer expires the set time run the autocompletion
-            //also make sure that when a item is selected the clearing of items
-            //ignores the currently selected station.
+            ComboBox senderbox = null;
+            if (((System.Windows.Forms.Timer)sender).Tag == "arrival")
+                senderbox = cboarrival;
+            else if (((System.Windows.Forms.Timer)sender).Tag == "depart")
+                senderbox = cbodepart;
+            else
+                return;
+                ((ComboBox)senderbox).Items.Clear();
+            ((System.Windows.Forms.Timer)sender).Enabled = false;
             try
             {
-                
-                cbodepart.Items.Clear();
-                foreach (Station station in SwissTransp.GetStations(cbodepart.Text).StationList)
+                foreach (Station station in SwissTransp.GetStations(((ComboBox)senderbox).Text).StationList)
                 {
-                    cbodepart.Items.Add(station.Name);
+                    ((ComboBox)senderbox).Items.Add(station.Name);
                 }
             }
             catch (Exception ex)
-            { } 
-            
+            { }
+            if(prevention == false)
+                ((ComboBox)senderbox).DroppedDown = true;
+            prevention = false;
         }
-        //taken from "https://stackoverflow.com/questions/1592876/make-a-borderless-form-movable"
-        //to make the design prettier and because it's too hard
-        //for me to code
+        private void btnsearch_Click(object sender, EventArgs e)
+        {
+            object list = SwissTransp.GetConnections(cbodepart.Text, cboarrival.Text);
+            foreach(Connection connection in ((Connections)list).ConnectionList)
+            {
+                dgvconnections.Rows.Add(connection.From.Departure, connection.From.Delay, connection.To.Platform, connection.To.Arrival, connection.To.Delay, connection.To.Platform);
+            }
+        }
+
+        //source: "https://stackoverflow.com/questions/1592876/make-a-borderless-form-movable"
+        //this code enables the dragging of the form without a border.
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
@@ -49,6 +86,18 @@ namespace SwissTransportGUI
             {
                 ReleaseCapture();
                 SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
+            }
+        }
+
+        private void chk_CheckedChanged(object sender, EventArgs e)
+        {
+            if(chk.Checked == true)
+            {
+                pnldepartpanel.Visible = true;
+            }
+            else
+            {
+                pnldepartpanel.Visible = false;
             }
         }
     }
